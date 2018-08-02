@@ -46,4 +46,18 @@ public class APIRequest {
         time = current;
         return passed;
     }
+
+    public String getRemoteClientIP() {
+        String ip = servletRequest.getHeader("X-Real-IP");
+        if (ip == null || ip.isEmpty()) {
+            ip = servletRequest.getHeader("X-Forwarded-For");
+        }
+        if (ip == null || ip.isEmpty()) {
+            ip = servletRequest.getHeader("x-forwarded-for");
+        }
+        if (ip == null || ip.isEmpty()) {
+            ip = servletRequest.getRemoteAddr();
+        }
+        return ip;
+    }
 }
