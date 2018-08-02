@@ -7,8 +7,12 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD,  ElementType.PARAMETER})
-public @interface Method {
+public @interface Param {
     String name();
 
-    Param[] params();
+    String type();
+
+    boolean required() default true;
+
+    String defaultValue() default "";
 }

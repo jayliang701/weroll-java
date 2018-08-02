@@ -1,10 +1,12 @@
 package com.magicfish.weroll.model;
 
+import java.util.HashMap;
+
 public class APIPostBody {
 
     private String method;
 
-    private Object data;
+    private HashMap<String, Object> data;
 
     public String getMethod() {
         return method;
@@ -14,11 +16,11 @@ public class APIPostBody {
         this.method = method;
     }
 
-    public Object getData() {
+    public HashMap<String, Object> getData() {
         return data;
     }
 
-    public void setData(Object data) {
+    public void setData(HashMap<String, Object> data) {
         this.data = data;
     }
 

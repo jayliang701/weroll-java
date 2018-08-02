@@ -1,10 +1,10 @@
 package com.magicfish.weroll.net;
 
 
-import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.model.APIPostBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 
 public class APIRequest {
 
@@ -26,8 +26,8 @@ public class APIRequest {
         return postBody.getMethod();
     }
 
-    public JSONObject getParams() {
-        return (JSONObject) postBody.getData();
+    public HashMap<String, Object> getParams() {
+        return postBody.getData();
     }
 
     public Object getParam(String key) {
