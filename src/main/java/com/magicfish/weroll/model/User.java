@@ -2,7 +2,7 @@ package com.magicfish.weroll.model;
 
 public class User {
 
-    private Long id;
+    private String id;
 
     private String username;
 
@@ -10,11 +10,11 @@ public class User {
 
     private String JS;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

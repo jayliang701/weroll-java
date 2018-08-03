@@ -7,12 +7,14 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD,  ElementType.PARAMETER})
-public @interface Param {
-    String name();
+public @interface Router {
 
-    String type() default "string";
+    String path();
 
-    boolean required() default true;
+    String view() default "";
 
-    String defaultValue() default "";
+    Param[] params() default {};
+
+    boolean needLogin() default false;
+
 }

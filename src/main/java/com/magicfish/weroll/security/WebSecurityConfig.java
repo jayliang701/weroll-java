@@ -1,5 +1,6 @@
 package com.magicfish.weroll.security;
 
+import com.magicfish.weroll.config.AuthConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,61 +10,79 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+
+import java.util.Set;
 
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-  @Autowired
-  private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private AuthConfiguration authConfiguration;
 
-  @Bean(name = BeanIds.AUTHENTICATION_MANAGER)
-  @Override
-  public AuthenticationManager authenticationManagerBean() throws Exception {
-    return super.authenticationManagerBean();
-  }
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
-  @Override
-  protected void configure(HttpSecurity http) throws Exception {
+    @Bean(name = BeanIds.AUTHENTICATION_MANAGER)
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
 
-    // Disable CSRF (cross site request forgery)
-    http.csrf().disable();
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
 
-    // No session will be created or used by spring security
-    http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        // Disable CSRF (cross site request forgery)
+        http.csrf().disable();
 
-    // Entry points
-    http.authorizeRequests()//
-        .antMatchers("/user/login").permitAll()//
-        // Disallow everything else..
-        .anyRequest().authenticated();
+        // No session will be created or used by spring security
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-    // If a user try to access a resource without having enough permissions
-    http.exceptionHandling().accessDeniedPage("/login");
+        // Entry points
+        ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry registry = http.authorizeRequests();
+        Set<String> whitelist = authConfiguration.getPublicPaths();
+        for(String path : whitelist){
+            registry = registry.antMatchers(path).permitAll();
+        }
+        registry.anyRequest().authenticated();
 
-    // Apply JWT
-    http.apply(new JwtTokenFilterConfigurer(jwtTokenProvider));
+        String entryPoint = authConfiguration.getEntryPoint();
+        // If a user try to access a resource without having enough permissions
+        if (entryPoint != null && !entryPoint.isEmpty()) {
+            http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(entryPoint));
+        }
 
-    // Optional, if you want to test the API from a browser
-    // http.httpBasic();
-  }
+        String deniedRedirect = authConfiguration.getDeniedRedirect();
+        // If a user try to access a resource without having enough permissions
+        if (deniedRedirect != null && !deniedRedirect.isEmpty()) {
+            http.exceptionHandling().accessDeniedPage(deniedRedirect);
+        }
 
-  @Override
-  public void configure(WebSecurity web) throws Exception {
-    // Allow swagger to be accessed without authentication
-    web.ignoring().antMatchers("/v2/api-docs")//
-        .antMatchers("/swagger-resources/**")//
-        .antMatchers("/swagger-ui.html")//
-        .antMatchers("/configuration/**")//
-        .antMatchers("/webjars/**")//
-        .antMatchers("/public");
-  }
+        // Apply JWT
+        http.apply(new JwtTokenFilterConfigurer(jwtTokenProvider));
 
-  @Bean
-  public PasswordEncoder passwordEncoder() {
+        // Optional, if you want to test the API from a browser
+        // http.httpBasic();
+    }
+
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        // Allow swagger to be accessed without authentication
+        web.ignoring().antMatchers("/v2/api-docs")//
+            .antMatchers("/swagger-resources/**")//
+            .antMatchers("/swagger-ui.html")//
+            .antMatchers("/configuration/**")//
+            .antMatchers("/webjars/**")//
+            .antMatchers("/public");
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder(12);
   }
 

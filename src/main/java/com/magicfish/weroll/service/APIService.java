@@ -1,71 +1,119 @@
 package com.magicfish.weroll.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.aspect.API;
 import com.magicfish.weroll.aspect.Method;
 import com.magicfish.weroll.aspect.Param;
+import com.magicfish.weroll.consts.ErrorCodes;
+import com.magicfish.weroll.exception.ServiceException;
+import com.magicfish.weroll.middleware.APIPermissionMiddleware;
 import com.magicfish.weroll.model.APIDef;
 import com.magicfish.weroll.model.APIPostBody;
-import com.magicfish.weroll.net.APIRequest;
+import com.magicfish.weroll.net.APIAction;
 import com.magicfish.weroll.utils.ClassUtil;
+import com.magicfish.weroll.utils.TypeConverter;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @Component
 public class APIService {
 
     protected HashMap<String, APIDef> apis;
 
+    protected APIPermissionMiddleware permissionMiddleware;
+
     public APIService() throws Exception {
         apis = new HashMap<>();
 
-        TypeConverter.init();
-
         findAllMethodAnnotation(ClassUtil.getClasses("com.magicfish.weroll.service.api"));
+
+        permissionMiddleware = new APIPermissionMiddleware();
     }
 
-    public Object exec(APIRequest request) {
+    protected boolean checkPermission(APIAction action, Method methodDef) {
+        CompletableFuture<?> task = permissionMiddleware.process(action, methodDef);
+        Object allow2 = true;
+        try {
+            allow2 = task.thenApply(allow1 -> allow1).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+//        return (boolean) allow2;
+        return (boolean) allow2;
+    }
+
+    @Async("request")
+    public CompletableFuture<Object> exec(APIAction action) {
         System.out.println("exec api...");
-        APIPostBody postBody = request.getPostBody();
+        APIPostBody postBody = action.getPostBody();
         HashMap<String, Object> postData = postBody.getData();
         String apiName = postBody.getMethod();
         APIObj api = getAPI(apiName);
         Object ins = api.apiDef.getInstance();
-        JSONObject result = new JSONObject();
+        Object result;
         try {
-            java.lang.reflect.Method method = api.apiDef.getMethod(api.method);
+            java.lang.reflect.Method method = api.getMethod(api.method);
 
             Method methodDef = api.getMethodDef(api.method);
+            if (method == null || methodDef == null) {
+                throw new ServiceException("no such method", ErrorCodes.NO_SUCH_METHOD);
+            }
+
+            if (!checkPermission(action, methodDef)) {
+                throw new ServiceException("no permission", ErrorCodes.NO_PERMISSION);
+            }
 
             Param[] paramDef = methodDef.params();
-            Object[] objs = new Object[paramDef.length + 1];
+            boolean needActionArg = true;
+            Object[] objs;
+            Class<?>[] typeClasses = method.getParameterTypes();
+            if (typeClasses.length > 0 && typeClasses[typeClasses.length - 1].equals(APIAction.class)) {
+                objs = new Object[paramDef.length + 1];
+            } else {
+                objs = new Object[paramDef.length];
+                needActionArg = false;
+            }
+
             for (int i = 0; i < paramDef.length; i++) {
                 Param param = paramDef[i];
                 objs[i] = null;
-                if (postData.containsKey(param.name())) {
-                    Object val = postData.get(param.name());
-                    objs[i] = TypeConverter.castValueAs(val, param.type());
+                Object val;
+                String name = param.name();
+                if (postData.containsKey(name)) {
+                    val = postData.get(name);
                 } else {
+                    if (param.required()) {
+                        throw new ServiceException("param [" + name + "] is required", ErrorCodes.REQUEST_PARAMS_INVALID);
+                    }
                     // set default value
-                    objs[i] = TypeConverter.castValueAs(param.defaultValue(), param.type());
+                    val = TypeConverter.castValueAs(param.defaultValue(), param.type());
                 }
+                objs[i] = val;
             }
-            objs[objs.length - 1] = request;
+            if (needActionArg) objs[objs.length - 1] = action;
 
-            result.put("code", 1);
-            result.put("data", method.invoke(ins, objs));
-        } catch (Exception e) {
-            if (IllegalArgumentException.class.isInstance(e)) {
-                result.put("code", 0);
-                result.put("msg", "invalid request params");
-            } else {
-                result.put("code", 0);
-                result.put("msg", e.toString());
+            try {
+                result = action.sayOK(method.invoke(ins, objs));
+            } catch (InvocationTargetException e) {
+                throw new ServiceException();
+            } catch (IllegalAccessException e) {
+                throw new ServiceException();
+            } catch (ServiceException e) {
+                throw e;
             }
+        } catch (IllegalArgumentException e) {
+            result = action.sayError(ErrorCodes.REQUEST_PARAMS_INVALID, "invalid request params");
+        } catch (ServiceException e) {
+            result = action.sayError(e);
         }
-        return result;
+        return CompletableFuture.completedFuture(result);
     }
 
     public APIObj getAPI(String name) {
@@ -138,65 +186,4 @@ class APIObj {
         return apiDef.getMethod(name);
     }
 
-}
-
-class TypeConverter {
-
-    static HashMap<String, Class> TYPES = new HashMap<>();
-    static HashMap<String, java.lang.reflect.Method> CASTS = new HashMap<>();
-
-    public static void init() throws NoSuchMethodException {
-        TYPES.put("string", String.class);
-        TYPES.put("int", int.class);
-        TYPES.put("long", long.class);
-        TYPES.put("float", float.class);
-        TYPES.put("double", double.class);
-        TYPES.put("boolean", boolean.class);
-
-        CASTS.put("java.lang.String-int", TypeConverter.class.getDeclaredMethod("cast_string_to_int", String.class));
-        CASTS.put("java.lang.String-long", TypeConverter.class.getDeclaredMethod("cast_string_to_long", String.class));
-        CASTS.put("java.lang.String-float", TypeConverter.class.getDeclaredMethod("cast_string_to_float", String.class));
-        CASTS.put("java.lang.String-double", TypeConverter.class.getDeclaredMethod("cast_string_to_double", String.class));
-        CASTS.put("java.lang.String-boolean", TypeConverter.class.getDeclaredMethod("cast_string_to_boolean", String.class));
-    }
-
-    private static int cast_string_to_int(String val) {
-        return Integer.valueOf(val);
-    }
-
-    private static long cast_string_to_long(String val) {
-        return Long.valueOf(val);
-    }
-
-    private static float cast_string_to_float(String val) {
-        return Float.valueOf(val);
-    }
-
-    private static double cast_string_to_double(String val) {
-        return Double.valueOf(val);
-    }
-
-    private static boolean cast_string_to_boolean(String val) {
-        if (val.equals("1")) {
-            return true;
-        } else if (val.equals("0")) {
-            return false;
-        }
-        return Boolean.valueOf(val);
-    }
-
-    public static Object castValueAs(Object val, String typeName) throws Exception {
-        Class type = TYPES.getOrDefault(typeName, null);
-        if (type == null) throw new Exception("unsupported param type [" + typeName + "]");
-        String srcClassName = val.getClass().getName();
-        if (srcClassName.equals(type.getName())) return val;
-
-        String castMethodKey = srcClassName + "-" + type.getName();
-        java.lang.reflect.Method method = CASTS.getOrDefault(castMethodKey, null);
-        if (method != null) {
-            return method.invoke(null, val);
-        }
-
-        return type.cast(val);
-    }
 }

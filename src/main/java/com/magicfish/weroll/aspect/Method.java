@@ -10,5 +10,7 @@ import java.lang.annotation.Target;
 public @interface Method {
     String name();
 
-    Param[] params();
+    Param[] params() default {};
+
+    boolean needLogin() default false;
 }

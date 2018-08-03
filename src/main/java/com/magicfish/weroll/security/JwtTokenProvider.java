@@ -30,7 +30,7 @@ public class JwtTokenProvider {
   private long validityInSeconds = 3600; // 1h
 
   @Autowired
-  private MyUserDetails myUserDetails;
+  private UserFinder userFinder;
 
   @PostConstruct
   protected void init() {
@@ -54,7 +54,7 @@ public class JwtTokenProvider {
   }
 
   public Authentication getAuthentication(String token) {
-    UserDetails userDetails = myUserDetails.loadUserByUsername(getUsername(token));
+    UserDetails userDetails = userFinder.loadUserByUsername(getUsername(token));
     return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
   }
 
