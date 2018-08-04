@@ -1,8 +1,8 @@
 package com.magicfish.weroll.utils;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
+import org.apache.commons.io.FileUtils;
+
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
@@ -59,8 +59,15 @@ public class ClassUtil {
                     //System.err.println(protocol+"类型的扫描");
 
                     try {
+                        String path = url.getFile().replace("!/"+packageDirName, "").replace("!/BOOT-INF/classes", "");
+                        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
 
-                        JarFile jar = new JarFile(new File(url.getFile().replace("!/"+packageDirName, "")));
+                        File tempFile = File.createTempFile("tmp", ".jar");
+                        FileUtils.copyInputStreamToFile(inputStream, tempFile);
+
+                        inputStream.close();
+
+                        JarFile jar = new JarFile(tempFile);
                         // 从此jar包 得到一个枚举类
                         Enumeration<JarEntry> entries = jar.entries();
                         // 同样的进行循环迭代
@@ -100,6 +107,7 @@ public class ClassUtil {
                                 }
                             }
                         }
+                        tempFile.delete();
                     } catch (Exception e1) {
                         e1.printStackTrace();
                     }
