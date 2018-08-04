@@ -1,4 +1,4 @@
-package com.magicfish.weroll.aspect;
+package com.magicfish.weroll.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,4 +1,4 @@
-package com.magicfish.weroll.controller;
+package demo.web.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ResourceUtils;

@@ -1,6 +1,6 @@
 package com.magicfish.weroll.middleware;
 
-import com.magicfish.weroll.aspect.Method;
+import com.magicfish.weroll.annotation.Method;
 import com.magicfish.weroll.net.APIAction;
 
 import java.util.concurrent.CompletableFuture;

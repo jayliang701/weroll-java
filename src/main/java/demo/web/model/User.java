@@ -1,4 +1,4 @@
-package com.magicfish.weroll.model;
+package demo.web.model;
 
 public class User {
 

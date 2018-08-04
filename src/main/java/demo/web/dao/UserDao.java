@@ -1,7 +1,6 @@
-package com.magicfish.weroll.dao;
+package demo.web.dao;
 
-import com.magicfish.weroll.model.User;
-import org.apache.ibatis.annotations.Mapper;
+import demo.web.model.User;
 import org.apache.ibatis.annotations.Select;
 
 public interface UserDao {

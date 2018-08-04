@@ -1,6 +1,6 @@
 package com.magicfish.weroll.model;
 
-import com.magicfish.weroll.aspect.Method;
+import com.magicfish.weroll.annotation.Method;
 
 import java.util.HashMap;
 

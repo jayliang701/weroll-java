@@ -1,12 +1,11 @@
 package com.magicfish.weroll.controller;
 
-import com.magicfish.weroll.aspect.Param;
-import com.magicfish.weroll.aspect.Router;
+import com.magicfish.weroll.annotation.Param;
+import com.magicfish.weroll.annotation.Router;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
 import com.magicfish.weroll.middleware.PagePermissionMiddleware;
 import com.magicfish.weroll.net.PageAction;
-import com.magicfish.weroll.utils.ClassUtil;
 import com.magicfish.weroll.utils.TypeConverter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,43 +16,81 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Controller
-public class RouterController {
+public class RouterController extends AbstractController {
 
     protected HashMap<String, RouterObj> routers;
 
     protected PagePermissionMiddleware permissionMiddleware;
 
+    @Override
+    protected String[] getInjectionPackages() {
+        return new String[] {
+            globalConfiguration.getRouter().getBasePackage()
+        };
+    }
+
     public RouterController() throws Exception {
-        routers = new HashMap<>();
+        super();
+    }
 
+    @Override
+    protected void initMiddleWare() {
         permissionMiddleware = new PagePermissionMiddleware();
+    }
 
-        findAllMethodAnnotation(ClassUtil.getClasses("com.magicfish.weroll.router"));
+    @Override
+    protected void injectAnnotation() throws Exception {
+        routers = new HashMap<>();
+        super.injectAnnotation();
     }
 
     @GetMapping("/")
-    public Object renderRootPage(HttpServletRequest request, HttpServletResponse response) {
-        return "/index";
+    public Object renderRootPage(Model model, HttpServletRequest request, HttpServletResponse response) throws ExecutionException, InterruptedException, IOException {
+        return renderPage(model, request, response);
     }
 
     @GetMapping("/{.+}")
-    public Object renderPage(Model model, HttpServletRequest request, HttpServletResponse response) throws ExecutionException, InterruptedException {
+    public Object renderPage(Model model, HttpServletRequest request, HttpServletResponse response) throws ExecutionException, InterruptedException, IOException {
         CompletableFuture<Object> task = process(model, request, response);
         Object path = task.thenApplyAsync(result -> result).get();
-        if (path == null || path.equals(404)) {
-            return "/404";
-        } else if (path.equals(403)) {
-            return "/403";
-        } else if (path.equals(500)) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        if (path == null) {
+            return globalConfiguration.getRouter().getPageNotFound();
+        }
+        if (Integer.class.isInstance(path) || int.class.isInstance(path)) {
+            if (path.equals(404)) {
+                return globalConfiguration.getRouter().getPageNotFound();
+            } else if (path.equals(401)) {
+                response.sendRedirect(globalConfiguration.getAuth().getEntryPoint());
+                return null;
+            } else if (path.equals(403)) {
+                return globalConfiguration.getAuth().getDeniedRedirect();
+            } else if (path.equals(500)) {
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
         return path;
+    }
+
+    protected int checkPermission(PageAction action) {
+        CompletableFuture<?> task = permissionMiddleware.process(action);
+        Object code = 1;
+        try {
+            code = task.thenApply(result -> result).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        return (int) code;
     }
 
     @Async("request")
@@ -69,8 +106,9 @@ public class RouterController {
         // check permission
         PageAction action = new PageAction(request, response, router);
 
-        if (permissionMiddleware.process(action).equals(false)) {
-            return CompletableFuture.completedFuture(403);
+        int checkCode = checkPermission(action);
+        if (checkCode != 1) {
+            return CompletableFuture.completedFuture(checkCode);
         }
 
         try {
@@ -94,7 +132,7 @@ public class RouterController {
                     objs[i] = TypeConverter.castValueAs(val, param.type());
                 } else {
                     if (param.required()) {
-                        throw new Exception("param [" + name + "] is required");
+                        throw new ServiceException("param [" + name + "] is required", ErrorCodes.REQUEST_PARAMS_INVALID);
                     }
                     // set default value
                     objs[i] = TypeConverter.castValueAs(param.defaultValue(), param.type());
@@ -106,18 +144,21 @@ public class RouterController {
                 path = router.path();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            String prefix = "Access page \"" + (String) path + "\" error: ";
+            if (ServiceException.class.isInstance(e)) {
+                ((ServiceException) e).printErrorMessage(prefix);
+            } else {
+                System.err.println(prefix);
+                e.printStackTrace();
+            }
             path = 500;
         }
 
         return CompletableFuture.completedFuture(path);
     }
 
-    private void findAllMethodAnnotation(Set<Class<?>> clsSet) throws Exception {
-        findAllMethodAnnotation(new ArrayList<>(clsSet));
-    }
-
-    private void findAllMethodAnnotation(List<Class> clsList) throws Exception {
+    @Override
+    protected void findAllMethodAnnotation(List<Class> clsList) throws Exception {
         if (clsList != null && clsList.size() > 0) {
             for (Class cls : clsList) {
                 Object ins = null;

@@ -1,4 +1,4 @@
-package com.magicfish.weroll.aspect;
+package com.magicfish.weroll.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,14 +7,12 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD,  ElementType.PARAMETER})
-public @interface Router {
+public @interface Param {
+    String name();
 
-    String path();
+    String type() default "string";
 
-    String view() default "";
+    boolean required() default true;
 
-    Param[] params() default {};
-
-    boolean needLogin() default false;
-
+    String defaultValue() default "";
 }

@@ -1,7 +1,7 @@
 package com.magicfish.weroll.security;
 
-import com.magicfish.weroll.dao.UserDao;
-import com.magicfish.weroll.model.User;
+import demo.web.dao.UserDao;
+import demo.web.model.User;
 import com.magicfish.weroll.model.UserAuth;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

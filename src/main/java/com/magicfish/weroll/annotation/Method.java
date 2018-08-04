@@ -1,4 +1,4 @@
-package com.magicfish.weroll.aspect;
+package com.magicfish.weroll.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,12 +7,10 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD,  ElementType.PARAMETER})
-public @interface Param {
+public @interface Method {
     String name();
 
-    String type() default "string";
+    Param[] params() default {};
 
-    boolean required() default true;
-
-    String defaultValue() default "";
+    boolean needLogin() default false;
 }

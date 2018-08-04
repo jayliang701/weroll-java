@@ -10,9 +10,9 @@ public class PagePermissionMiddleware extends AbstractPageMiddleware {
     protected CompletableFuture<?> processPageAction(PageAction action, Object... args) {
         return CompletableFuture.supplyAsync(() -> {
             if (action.getRouter().needLogin() && !action.isLogined()) {
-                return false;
+                return 401;
             }
-            return true;
+            return 1;
         }).thenApply(result -> result);
     }
 }

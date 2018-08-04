@@ -1,7 +1,7 @@
 package com.magicfish.weroll.net;
 
 
-import com.magicfish.weroll.aspect.Router;
+import com.magicfish.weroll.annotation.Router;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

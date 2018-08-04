@@ -1,6 +1,7 @@
 package com.magicfish.weroll.security;
 
 import com.magicfish.weroll.config.AuthConfiguration;
+import com.magicfish.weroll.config.GlobalConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +24,7 @@ import java.util.Set;
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
-    private AuthConfiguration authConfiguration;
+    private GlobalConfiguration globalConfiguration;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -42,6 +43,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         // No session will be created or used by spring security
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        AuthConfiguration authConfiguration = globalConfiguration.getAuth();
 
         // Entry points
         ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry registry = http.authorizeRequests();

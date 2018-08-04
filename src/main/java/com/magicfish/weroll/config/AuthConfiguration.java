@@ -1,17 +1,7 @@
 package com.magicfish.weroll.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
-
 import java.util.*;
 
-@Order(Ordered.HIGHEST_PRECEDENCE)
-@Component
-@ConfigurationProperties("auth")
-@PropertySource("classpath:config/auth.properties")
 public class AuthConfiguration {
 
     private Set<String> publicPaths;

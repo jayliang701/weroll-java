@@ -1,8 +1,7 @@
-package com.magicfish.weroll.service.impl;
+package demo.web.service;
 
-import com.magicfish.weroll.dao.UserDao;
+import demo.web.dao.UserDao;
 import com.magicfish.weroll.security.JwtTokenProvider;
-import com.magicfish.weroll.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service(value = "userService")
-public class UserServiceImpl implements UserService {
+public class UserService {
 
     @Autowired
     private UserDao userDao;
@@ -25,7 +24,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    @Override
     public String login(String username, String password) throws Exception {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));

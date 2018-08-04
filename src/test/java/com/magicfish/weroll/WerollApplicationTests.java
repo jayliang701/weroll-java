@@ -1,7 +1,7 @@
 package com.magicfish.weroll;
 
-import com.magicfish.weroll.dao.UserDao;
-import com.magicfish.weroll.model.User;
+import demo.web.dao.UserDao;
+import demo.web.model.User;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -1,9 +1,9 @@
-package com.magicfish.weroll.service.api;
+package demo.web.api;
 
 import com.alibaba.fastjson.JSONObject;
-import com.magicfish.weroll.aspect.API;
-import com.magicfish.weroll.aspect.Method;
-import com.magicfish.weroll.aspect.Param;
+import com.magicfish.weroll.annotation.API;
+import com.magicfish.weroll.annotation.Method;
+import com.magicfish.weroll.annotation.Param;
 import com.magicfish.weroll.exception.ServiceException;
 import com.magicfish.weroll.net.APIAction;
 
