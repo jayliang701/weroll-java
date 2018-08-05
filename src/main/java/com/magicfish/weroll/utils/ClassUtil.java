@@ -16,7 +16,7 @@ public class ClassUtil {
     public static Set<Class<?>> getClasses(String pack) {
 
         // 第一个class类的集合
-        Set<Class<?>> classes = new LinkedHashSet<Class<?>>();
+        Set<Class<?>> classes = new LinkedHashSet<>();
         // 是否循环迭代
         boolean recursive = true;
         // 获取包的名字 并进行替换
@@ -53,21 +53,20 @@ public class ClassUtil {
 
                     findAndAddClassesInPackageByFile(packageName, filePath,recursive, classes);
 
-                } else if ("jar".equals(protocol)||"zip".equals(protocol) ) {
+                } else if ("war".equals(protocol) || "jar".equals(protocol) || "zip".equals(protocol) ) {
                     // 如果是jar包文件
                     // 定义一个JarFile
                     //System.err.println(protocol+"类型的扫描");
 
                     try {
-                        String path = url.getFile().replace("!/"+packageDirName, "").replace("!/BOOT-INF/classes", "");
+                        String path = url.getFile().replace("!/"+packageDirName, "").replace("!/BOOT-INF/classes", "").replace("!/WEB-INF/classes", "");
+                        System.out.println(path);
                         InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
-
-                        File tempFile = File.createTempFile("tmp", ".jar");
+                        File tempFile = File.createTempFile("tmp" + System.currentTimeMillis(), ".jar");
                         FileUtils.copyInputStreamToFile(inputStream, tempFile);
 
-                        inputStream.close();
-
                         JarFile jar = new JarFile(tempFile);
+
                         // 从此jar包 得到一个枚举类
                         Enumeration<JarEntry> entries = jar.entries();
                         // 同样的进行循环迭代
@@ -75,18 +74,23 @@ public class ClassUtil {
                             // 获取jar里的一个实体 可以是目录 和一些jar包里的其他文件 如META-INF等文件
                             JarEntry entry = entries.nextElement();
                             String name = entry.getName();
+                            String checkName = name;
+                            if (name.startsWith("WEB-INF/classes/") || name.startsWith("BOOT-INF/classes/")) {
+                                // 需要进入 BOOT-INF/classes 或者 WEB-INF/classes 目录再查找
+                                checkName = checkName.replace("WEB-INF/classes/", "").replace("BOOT-INF/classes/", "");
+                            }
                             // 如果是以/开头的
                             if (name.charAt(0) == '/') {
                                 // 获取后面的字符串
                                 name = name.substring(1);
                             }
                             // 如果前半部分和定义的包名相同
-                            if (name.startsWith(packageDirName)) {
-                                int idx = name.lastIndexOf('/');
+                            if (checkName.startsWith(packageDirName)) {
+                                int idx = checkName.lastIndexOf('/');
                                 // 如果以"/"结尾 是一个包
                                 if (idx != -1) {
                                     // 获取包名 把"/"替换成"."
-                                    packageName = name.substring(0, idx).replace('/', '.');
+                                    packageName = checkName.substring(0, idx).replace('/', '.');
                                 }
                                 // 如果可以迭代下去 并且是一个包
                                 if ((idx != -1) || recursive) {
@@ -94,7 +98,7 @@ public class ClassUtil {
                                     if (name.endsWith(".class")
                                             && !entry.isDirectory()) {
                                         // 去掉后面的".class" 获取真正的类名
-                                        String className = name.substring(packageName.length() + 1, name.length() - 6);
+                                        String className = name.substring(name.lastIndexOf('/') + 1, name.length() - 6);
                                         try {
                                             // 添加到classes
                                             classes.add(Class.forName(packageName + '.' + className));
@@ -107,6 +111,7 @@ public class ClassUtil {
                                 }
                             }
                         }
+                        inputStream.close();
                         tempFile.delete();
                     } catch (Exception e1) {
                         e1.printStackTrace();
