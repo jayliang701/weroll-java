@@ -6,12 +6,12 @@ import org.springframework.ui.Model;
 
 public class Test {
 
-    @Router(path = "/test", needLogin = true)
+    @Router(path = "/config/localdev/test", needLogin = true)
     public void renderTestPage() {
 
     }
 
-    @Router(path = "/test2", view = "/test",
+    @Router(path = "/test2", view = "/config/localdev/test",
             needLogin = false,
             params = {
                 @Param(name = "id")

@@ -38,7 +38,7 @@ public class SystemAPI {
         return result;
     }
 
-    @Method(name = "test",
+    @Method(name = "config/localdev/test",
             needLogin = true,
             params = {
                 @Param(name = "name", type = "string", required = false)

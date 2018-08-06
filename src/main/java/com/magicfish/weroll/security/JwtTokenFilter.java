@@ -13,27 +13,27 @@ import java.io.IOException;
 
 public class JwtTokenFilter extends GenericFilterBean {
 
-  private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;
 
-  public JwtTokenFilter(JwtTokenProvider jwtTokenProvider) {
-    this.jwtTokenProvider = jwtTokenProvider;
-  }
+    public JwtTokenFilter(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
 
-  @Override
-  public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
-      throws IOException, ServletException {
-      String token = jwtTokenProvider.resolveToken((HttpServletRequest) req);
-      boolean valid;
-      try {
-          valid = jwtTokenProvider.validateToken(token);
-      } catch (Exception e) {
-          valid = false;
-      }
-      if (token != null && valid) {
-          Authentication auth = jwtTokenProvider.getAuthentication(token);
-          SecurityContextHolder.getContext().setAuthentication(auth);
-      }
-      filterChain.doFilter(req, res);
-  }
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
+            throws IOException, ServletException {
+        String token = jwtTokenProvider.resolveToken((HttpServletRequest) req);
+        boolean valid;
+        try {
+            valid = jwtTokenProvider.validateToken(token);
+        } catch (Exception e) {
+            valid = false;
+        }
+        if (token != null && valid) {
+            Authentication auth = jwtTokenProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+        filterChain.doFilter(req, res);
+    }
 
 }

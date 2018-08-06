@@ -48,4 +48,16 @@ public class AuthConfiguration {
     public boolean isPublicPath(String path) {
         return publicPaths.contains(path);
     }
+
+    private boolean useRedis;
+
+    public boolean getUseRedis() {
+        return useRedis;
+    }
+
+    public void setUseRedis(boolean useRedis) {
+        this.useRedis = useRedis;
+    }
+
+    
 }
