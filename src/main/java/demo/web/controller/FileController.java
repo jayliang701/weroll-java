@@ -1,21 +1,52 @@
 package demo.web.controller;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.*;
+
+import com.alibaba.fastjson.JSONObject;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ResourceUtils;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.UUID;
+class WechatAuthResponse {
+    public int errcode;
+
+    public String errmsg;
+
+    public HashMap<String, ?> hints;
+}
 
 @Controller
 @RequestMapping("/file")
 public class FileController {
+
+    @GetMapping("wxauth")
+    public String getOpenID(@RequestParam("code") String code) {
+        final String appid = "wxb0a3902d9f28f042";
+        final String secret = "e291ac8584b6daefd7a1ba95e22678b8";
+        final String url = "https://api.weixin.qq.com/sns/jscode2session?appid=" + appid + "&secret=" + secret + "&js_code=" + code + "&grant_type=authorization_code";
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_XML));
+        HttpEntity<String> entity = new HttpEntity<String>("parameters", headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+        JSONObject result = (JSONObject) JSONObject.parse(response.getBody());
+
+        System.out.println("openid -----> " + result.get("openid"));
+
+        return result.toString();
+    }
 
     @ResponseBody
     @PostMapping("/upload")
