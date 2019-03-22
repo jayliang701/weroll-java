@@ -1,18 +1,16 @@
 package com.magicfish.weroll.middleware;
 
+import com.magicfish.weroll.net.HttpAction;
 import com.magicfish.weroll.net.PageAction;
-
-import java.util.concurrent.CompletableFuture;
 
 public class PagePermissionMiddleware extends AbstractPageMiddleware {
 
     @Override
-    protected CompletableFuture<?> processPageAction(PageAction action, Object... args) {
-        return CompletableFuture.supplyAsync(() -> {
-            if (action.getRouter().needLogin() && !action.isLogined()) {
-                return 401;
-            }
-            return 1;
-        }).thenApply(result -> result);
+    public Object process(HttpAction action, Object... args) {
+        PageAction pageAction = (PageAction) action;
+        if (pageAction.getRouter().needLogin() && !action.isLogined()) {
+            return 401;
+        }
+        return 1;
     }
 }

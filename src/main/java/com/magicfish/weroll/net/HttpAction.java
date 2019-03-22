@@ -1,12 +1,11 @@
 package com.magicfish.weroll.net;
 
-import com.magicfish.weroll.model.UserAuth;
+import com.magicfish.weroll.security.jwt.identifier.UserPayload;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.security.Principal;
 import java.util.Map;
 
 public class HttpAction {
@@ -35,14 +34,14 @@ public class HttpAction {
 
     protected Authentication authentication;
 
-    protected UserAuth userAuth;
+    protected UserPayload userPayload;
 
-    public UserAuth getUserAuth() {
-        return userAuth;
+    public UserPayload getUserPayload() {
+        return userPayload;
     }
 
     public boolean isLogined() {
-        return userAuth != null;
+        return userPayload != null;
     }
 
     public HttpAction(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
@@ -50,12 +49,17 @@ public class HttpAction {
         this.servletResponse = servletResponse;
         this.time = System.currentTimeMillis();
         this.authentication = SecurityContextHolder.getContext().getAuthentication();
-        Object principal = this.authentication.getPrincipal();
-        if (UserAuth.class.isInstance(principal)) {
-            this.userAuth = (UserAuth) this.authentication.getPrincipal();
+        if (this.authentication != null) {
+            Object principal = this.authentication.getPrincipal();
+            if (UserPayload.class.isInstance(principal)) {
+                this.userPayload = (UserPayload) this.authentication.getPrincipal();
+            } else {
+                //no auth
+                this.userPayload = null;
+            }
         } else {
             //no auth
-            this.userAuth = null;
+            this.userPayload = null;
         }
     }
 

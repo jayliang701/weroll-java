@@ -2,7 +2,10 @@ package com.magicfish.weroll.utils;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
@@ -38,7 +41,7 @@ public class ClassUtil {
                     // 获取包的物理路径
                     String filePath = URLDecoder.decode(url.getFile(), "UTF-8");
                     // 以文件的方式扫描整个包下的文件 并添加到集合中
-                    findAndAddClassesInPackageByFile(packageName, filePath,recursive, classes);
+                    findAndAddClassesInPackageByFile(packageName, filePath, recursive, classes);
                 } else if (protocol.equals("vfsfile")) {
                     //Set<URL> results = new HashSet<URL>();
                     String cleanURL = url.toString();
@@ -49,17 +52,17 @@ public class ClassUtil {
 
                     //results.add(new URL(cleanURL));
 
-                    String filePath = URLDecoder.decode ((new URL(cleanURL)).getFile(),"UTF-8");
+                    String filePath = URLDecoder.decode((new URL(cleanURL)).getFile(), "UTF-8");
 
-                    findAndAddClassesInPackageByFile(packageName, filePath,recursive, classes);
+                    findAndAddClassesInPackageByFile(packageName, filePath, recursive, classes);
 
-                } else if ("war".equals(protocol) || "jar".equals(protocol) || "zip".equals(protocol) ) {
+                } else if ("war".equals(protocol) || "jar".equals(protocol) || "zip".equals(protocol)) {
                     // 如果是jar包文件
                     // 定义一个JarFile
                     //System.err.println(protocol+"类型的扫描");
 
                     try {
-                        String path = url.getFile().replace("!/"+packageDirName, "").replace("!/BOOT-INF/classes", "").replace("!/WEB-INF/classes", "");
+                        String path = url.getFile().replace("!/" + packageDirName, "").replace("!/BOOT-INF/classes", "").replace("!/WEB-INF/classes", "");
                         System.out.println(path);
                         InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
                         File tempFile = File.createTempFile("tmp" + System.currentTimeMillis(), ".jar");

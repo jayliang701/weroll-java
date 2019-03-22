@@ -1,46 +1,65 @@
 package com.magicfish.weroll.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+@Order(Ordered.LOWEST_PRECEDENCE)
+@Component
 @EnableWebSecurity
 public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
+    @Autowired
+    private GlobalSetting globalSetting;
+
     @Override
     protected void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler(
-                "/webjars/**",
-                "/img/**",
-                "/css/**",
-                "/js/**")
-                .addResourceLocations(
-                        "classpath:/META-INF/resources/webjars/",
-                        "classpath:/static/img/",
-                        "classpath:/static/css/",
-                        "classpath:/static/js/");
+        String[] resourceHandlers = globalSetting.getRes().getHandlers();
+        ResourceHandlerRegistration registration = null;
+        for (String item : resourceHandlers) {
+            registration = registry.addResourceHandler(item);
+        }
+        if (registration != null) {
+            String[] resourceLocations = globalSetting.getRes().getLocations();
+            for (String item : resourceLocations) {
+                registration.addResourceLocations(item);
+            }
+        }
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new CORSInterceptor()).addPathPatterns("/**");
+        if (globalSetting.getApi().getEnableCors()) {
+            registry.addInterceptor(new CORSInterceptor(globalSetting)).addPathPatterns("/**");
+        }
     }
 }
 
 class CORSInterceptor implements HandlerInterceptor {
 
-    @Override
-    public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o) throws Exception{
+    private GlobalSetting globalSetting;
 
-        String origin = httpServletRequest.getHeader("Origin");
-        httpServletResponse.setHeader("Access-Control-Allow-Origin", origin);
-        httpServletResponse.setHeader("Access-Control-Allow-Methods", "*");
-        httpServletResponse.setHeader("Access-Control-Allow-Headers","Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With");
+    public CORSInterceptor(GlobalSetting globalSetting) {
+        this.globalSetting = globalSetting;
+    }
+
+    @Override
+    public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o) throws Exception {
+
+//        String origin = httpServletRequest.getHeader("Origin");
+        httpServletResponse.setHeader("Access-Control-Allow-Origin", globalSetting.getApi().getCorsAllowOriginals());
+        httpServletResponse.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        httpServletResponse.setHeader("Access-Control-Allow-Headers", "Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With");
         httpServletResponse.setHeader("Access-Control-Allow-Credentials", "true");
 
         return true;

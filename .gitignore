@@ -28,4 +28,5 @@
 /nbdist/
 /.nb-gradle/
 
-/.vscode/
+/.vscode
+/.settings

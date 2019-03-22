@@ -10,7 +10,7 @@ import com.magicfish.weroll.model.APIDef;
 import com.magicfish.weroll.model.APIPostBody;
 import com.magicfish.weroll.net.APIAction;
 import com.magicfish.weroll.utils.TypeConverter;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,8 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Controller
@@ -30,21 +29,8 @@ public class APIController extends AbstractController {
 
     protected APIPermissionMiddleware permissionMiddleware;
 
-    public APIController() throws Exception {
-        super();
-    }
-
-    @Override
-    protected String[] getInjectionPackages() {
-        return new String[] {
-            globalConfiguration.getApi().getBasePackage()
-        };
-    }
-
-    @Override
-    protected void injectAnnotation() throws Exception {
-        apis = new HashMap<>();
-        super.injectAnnotation();
+    public APIController(ApplicationContext applicationContext) throws Exception {
+        super(applicationContext);
     }
 
     @Override
@@ -56,33 +42,17 @@ public class APIController extends AbstractController {
     @PostMapping("/api")
     public Object api(@RequestBody APIPostBody body, HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ExecutionException, InterruptedException {
         APIAction request = new APIAction(servletRequest, servletResponse, body);
-        CompletableFuture<Object> task = process(request);
-        return task.thenApplyAsync(result -> result).get();
+        return process(request);
     }
 
-    protected boolean checkPermission(APIAction action, Method methodDef) {
-        CompletableFuture<?> task = permissionMiddleware.process(action, methodDef);
-        Object allow2 = true;
-        try {
-            allow2 = task.thenApply(allow1 -> allow1).get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-
-        return (boolean) allow2;
-    }
-
-    @Async("request")
-    public CompletableFuture<Object> process(APIAction action) {
-        System.out.println("exec api...");
+    protected Object process(APIAction action) {
+        logger.debug("execute API: " + action.getMethod());
         Object result;
         try {
             APIPostBody postBody = action.getPostBody();
             HashMap<String, Object> postData = postBody.getData();
             String apiName = postBody.getMethod();
-            APIObj api = getAPI(apiName);
+            APIObj api = this.getAPI(apiName);
             if (api == null || api.apiDef == null) {
                 throw new ServiceException("no such method", ErrorCodes.NO_SUCH_METHOD);
             }
@@ -94,7 +64,7 @@ public class APIController extends AbstractController {
                 throw new ServiceException("no such method", ErrorCodes.NO_SUCH_METHOD);
             }
 
-            if (!checkPermission(action, methodDef)) {
+            if (!this.checkPermission(action, methodDef)) {
                 throw new ServiceException("no permission", ErrorCodes.NO_PERMISSION);
             }
 
@@ -132,8 +102,10 @@ public class APIController extends AbstractController {
             } catch (Exception e) {
                 if (ServiceException.class.isInstance(e)) {
                     throw (ServiceException) e;
+                } else if (ServiceException.class.isInstance(e.getCause())) {
+                    throw (ServiceException) (e.getCause());
                 } else {
-                    throw new ServiceException();
+                    throw ServiceException.wrapper(e);
                 }
             }
         } catch (IllegalArgumentException e) {
@@ -141,7 +113,12 @@ public class APIController extends AbstractController {
         } catch (ServiceException e) {
             result = action.sayError(e);
         }
-        return CompletableFuture.completedFuture(result);
+        return result;
+    }
+
+    protected boolean checkPermission(APIAction action, Method methodDef) {
+        Object allow = permissionMiddleware.process(action, methodDef);
+        return (boolean) allow;
     }
 
     public APIObj getAPI(String name) {
@@ -164,31 +141,29 @@ public class APIController extends AbstractController {
     }
 
     @Override
-    protected void findAllMethodAnnotation(List<Class> clsList) throws Exception {
-        if (clsList != null && clsList.size() > 0) {
-            for (Class cls : clsList) {
-
-                API apiAnnotation = (API) cls.getAnnotation(API.class);
-                if (apiAnnotation != null) {
-                    Object ins = cls.newInstance();
-                    HashMap<String, Method> methodDefMap = new HashMap<>();
-                    HashMap<String, java.lang.reflect.Method> methodMap = new HashMap<>();
-                    java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
-                    if (methods != null && methods.length > 0) {
-                        for (java.lang.reflect.Method method : methods) {
-                            Method annotation = (Method) method.getAnnotation(Method.class);
-                            if (annotation != null) {
-                                methodDefMap.put(annotation.name(), annotation);
-                                methodMap.put(annotation.name(), method);
-                                System.out.println("register api: " + apiAnnotation.name() + "." + annotation.name());
-                            }
-                        }
+    protected void injectAnnotation() throws Exception {
+        apis = new HashMap<>();
+        Map<String, Object> beans = applicationContext.getBeansWithAnnotation(API.class);
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+            Object ins = entry.getValue();
+            Class cls = ins.getClass();
+            API apiAnnotation = (API) cls.getAnnotation(API.class);
+            HashMap<String, Method> methodDefMap = new HashMap<>();
+            HashMap<String, java.lang.reflect.Method> methodMap = new HashMap<>();
+            java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
+            if (methods != null && methods.length > 0) {
+                for (java.lang.reflect.Method method : methods) {
+                    Method annotation = (Method) method.getAnnotation(Method.class);
+                    if (annotation != null) {
+                        methodDefMap.put(annotation.name(), annotation);
+                        methodMap.put(annotation.name(), method);
+                        logger.info("register api: " + apiAnnotation.name() + "." + annotation.name());
                     }
-
-                    APIDef def = new APIDef(apiAnnotation.name(), ins, methodDefMap, methodMap);
-                    apis.put(def.getName(), def);
                 }
             }
+
+            APIDef def = new APIDef(apiAnnotation.name(), ins, methodDefMap, methodMap);
+            apis.put(def.getName(), def);
         }
     }
 }

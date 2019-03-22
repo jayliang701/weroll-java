@@ -2,7 +2,6 @@ package com.magicfish.weroll.utils;
 
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -13,7 +12,7 @@ import java.util.HashMap;
 @Component
 public class TypeConverter {
 
-    public TypeConverter() throws NoSuchMethodException{
+    public TypeConverter() throws NoSuchMethodException {
         TypeConverter.init();
     }
 
@@ -62,7 +61,8 @@ public class TypeConverter {
 
     public static Object castValueAs(Object val, String typeName) throws ServiceException {
         Class type = TYPES.getOrDefault(typeName, null);
-        if (type == null) throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+        if (type == null)
+            throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
         String srcClassName = val.getClass().getName();
         if (srcClassName.equals(type.getName())) return val;
 

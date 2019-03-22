@@ -1,42 +1,31 @@
 package com.magicfish.weroll.controller;
 
-import com.magicfish.weroll.config.GlobalConfiguration;
-import com.magicfish.weroll.utils.ClassUtil;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.magicfish.weroll.config.GlobalSetting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 public class AbstractController {
 
-    protected GlobalConfiguration globalConfiguration;
+    protected GlobalSetting globalSetting;
 
-    public AbstractController() throws Exception {
-        globalConfiguration = GlobalConfiguration.getInstance();
+    protected ApplicationContext applicationContext;
+
+    protected Logger logger;
+
+    public AbstractController(ApplicationContext applicationContext) throws Exception {
+        logger = LoggerFactory.getLogger(this.getClass());
+        this.applicationContext = applicationContext;
+        globalSetting = GlobalSetting.getInstance();
         injectAnnotation();
         initMiddleWare();
     }
 
-    protected String[] getInjectionPackages() {
-        return new String[] {};
-    }
-
     protected void injectAnnotation() throws Exception {
-        String[] packages = getInjectionPackages();
-        for (String path : packages) {
-            findAllMethodAnnotation(ClassUtil.getClasses(path));
-        }
+
     }
 
     protected void initMiddleWare() {
-
-    }
-
-    protected void findAllMethodAnnotation(Set<Class<?>> clsSet) throws Exception {
-        findAllMethodAnnotation(new ArrayList<>(clsSet));
-    }
-
-    protected void findAllMethodAnnotation(List<Class> clsList) throws Exception {
 
     }
 }

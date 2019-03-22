@@ -1,8 +1,12 @@
 package com.magicfish.weroll.security;
 
-import com.magicfish.weroll.config.AuthConfiguration;
-import com.magicfish.weroll.config.GlobalConfiguration;
+import com.magicfish.weroll.config.GlobalSetting;
+import com.magicfish.weroll.config.property.AuthProperties;
+import com.magicfish.weroll.security.encoder.MD5PasswordEncoder;
+import com.magicfish.weroll.security.jwt.SessionTokenFilterConfigure;
+import com.magicfish.weroll.security.jwt.SessionTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
+import java.security.SecureRandom;
 import java.util.Set;
 
 @Configuration
@@ -24,10 +29,10 @@ import java.util.Set;
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
-    private GlobalConfiguration globalConfiguration;
+    private GlobalSetting globalSetting;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private SessionTokenProvider sessionTokenProvider;
 
     @Bean(name = BeanIds.AUTHENTICATION_MANAGER)
     @Override
@@ -38,18 +43,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
+        if (!globalSetting.getAuth().isEnabled()) {
+            http.authorizeRequests().anyRequest().permitAll();
+            return;
+        }
+
         // Disable CSRF (cross site request forgery)
         http.csrf().disable();
 
         // No session will be created or used by spring security
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        AuthConfiguration authConfiguration = globalConfiguration.getAuth();
+        AuthProperties authConfiguration = globalSetting.getAuth();
 
         // Entry points
         ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry registry = http.authorizeRequests();
         Set<String> whitelist = authConfiguration.getPublicPaths();
-        for(String path : whitelist){
+        for (String path : whitelist) {
             registry = registry.antMatchers(path).permitAll();
         }
         registry.anyRequest().authenticated();
@@ -67,7 +77,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         }
 
         // Apply JWT
-        http.apply(new JwtTokenFilterConfigure(jwtTokenProvider));
+        http.apply(new SessionTokenFilterConfigure(sessionTokenProvider));
 
         // Optional, if you want to test the API from a browser
         // http.httpBasic();
@@ -75,18 +85,35 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(WebSecurity web) throws Exception {
+        if (!globalSetting.getAuth().isEnabled()) {
+            web.ignoring().antMatchers("/**");
+            return;
+        }
         // Allow swagger to be accessed without authentication
-        web.ignoring().antMatchers("/v2/api-docs")//
-            .antMatchers("/swagger-resources/**")//
-            .antMatchers("/swagger-ui.html")//
-            .antMatchers("/configuration/**")//
-            .antMatchers("/webjars/**")//
-            .antMatchers("/public");
+        web.ignoring().antMatchers("/v2/api-docs")
+                .antMatchers("/swagger-resources/**")
+                .antMatchers("/swagger-ui.html")
+                .antMatchers("/configuration/**")
+                .antMatchers("/webjars/**")
+                .antMatchers("/public")
+                .antMatchers("/static");
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder(12);
-  }
+        String method = globalSetting.getAuth().getPasswordEncodeMethod();
+        String salt = globalSetting.getAuth().getPasswordEncodeSalt();
+        if (method.equals(AuthProperties.MD5_ENCODE)) {
+            return new MD5PasswordEncoder(salt);
+        } else if (method.equals(AuthProperties.BCRYPT_ENCODE)) {
+            int strength = globalSetting.getAuth().getPasswordEncodeStrength();
+            if (salt != null && !salt.isEmpty()) {
+                SecureRandom random = new SecureRandom(salt.getBytes());
+                return new BCryptPasswordEncoder(strength, random);
+            }
+            return new BCryptPasswordEncoder(strength);
+        }
+        return null;
+    }
 
 }
