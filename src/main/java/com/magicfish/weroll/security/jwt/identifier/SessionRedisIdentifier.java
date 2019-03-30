@@ -4,8 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.config.property.RedisProperties;
 import com.magicfish.weroll.config.property.SessProperties;
 import com.magicfish.weroll.exception.IllegalSessionTokenException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
@@ -18,11 +16,10 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class SessionRedisIdentifier implements SessionIdentifier {
+public class SessionRedisIdentifier extends AbstractSessionIdentifier {
 
     public SessionRedisIdentifier(SessProperties properties) {
-
-        this.properties = properties;
+        super(properties);
 
         RedisProperties redisProperties = properties.getRedis();
 
@@ -44,8 +41,6 @@ public class SessionRedisIdentifier implements SessionIdentifier {
         redisTemplate.afterPropertiesSet();
     }
 
-    private SessProperties properties;
-
     private RedisTemplate<String, Object> redisTemplate;
 
     private String buildKey(String key) {
@@ -54,23 +49,6 @@ public class SessionRedisIdentifier implements SessionIdentifier {
             return prefix + key;
         }
         return key;
-    }
-
-    private String getIdentify(String secretKey, String token) {
-        Claims body = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
-
-        String id = body.get("userid", String.class);
-        Long time = body.get("time", Long.class);
-
-        return generateIdentify(id, time);
-    }
-
-    @Override
-    public String generateIdentify(String userid, Long time) {
-        if (properties.isOnePointEnter()) {
-            return userid;
-        }
-        return userid + "_" + String.valueOf(time);
     }
 
     @Override
@@ -91,9 +69,9 @@ public class SessionRedisIdentifier implements SessionIdentifier {
 
         String identify = getIdentify(secretKey, token);
 
-        UserPayload payload = null;
         String key = buildKey(identify);
         Object store = redisTemplate.opsForValue().get(key);
+        UserPayload payload = null;
         if (store != null) {
             String value = String.valueOf(store);
             if (!value.isEmpty()) {

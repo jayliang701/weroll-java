@@ -74,4 +74,14 @@ public class BaseGlobalSetting {
     public void setRes(ResProperties res) {
         this.res = res;
     }
+
+    private SiteProperties site;
+
+    public SiteProperties getSite() {
+        return site;
+    }
+
+    public void setSite(SiteProperties site) {
+        this.site = site;
+    }
 }

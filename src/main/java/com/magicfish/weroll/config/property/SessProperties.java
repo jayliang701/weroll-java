@@ -1,5 +1,7 @@
 package com.magicfish.weroll.config.property;
 
+import com.magicfish.weroll.config.property.enums.SessStorageEngineType;
+
 public class SessProperties extends AbstractProperties {
 
     private boolean onePointEnter = false;
@@ -10,16 +12,6 @@ public class SessProperties extends AbstractProperties {
 
     public void setOnePointEnter(boolean onePointEnter) {
         this.onePointEnter = onePointEnter;
-    }
-
-    private boolean useRedis;
-
-    public boolean getUseRedis() {
-        return useRedis;
-    }
-
-    public void setUseRedis(boolean useRedis) {
-        this.useRedis = useRedis;
     }
 
     private String secret;
@@ -50,5 +42,25 @@ public class SessProperties extends AbstractProperties {
 
     public void setRedis(RedisProperties redis) {
         this.redis = redis;
+    }
+
+    private MongoDBProperties mongodb = new MongoDBProperties();
+
+    public MongoDBProperties getMongodb() {
+        return mongodb;
+    }
+
+    public void setMongodb(MongoDBProperties mongodb) {
+        this.mongodb = mongodb;
+    }
+
+    private SessStorageEngineType storageEngine = SessStorageEngineType.REDIS;
+
+    public SessStorageEngineType getStorageEngine() {
+        return storageEngine;
+    }
+
+    public void setStorageEngine(SessStorageEngineType storageEngine) {
+        this.storageEngine = storageEngine;
     }
 }

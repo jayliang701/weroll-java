@@ -1,9 +1,9 @@
 package com.magicfish.weroll.security.jwt;
 
 import com.magicfish.weroll.config.GlobalSetting;
+import com.magicfish.weroll.config.property.SessProperties;
 import com.magicfish.weroll.exception.IllegalSessionTokenException;
 import com.magicfish.weroll.security.jwt.identifier.SessionIdentifier;
-import com.magicfish.weroll.security.jwt.identifier.SessionRedisIdentifier;
 import com.magicfish.weroll.security.jwt.identifier.UserPayload;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,10 +34,14 @@ public class SessionTokenProvider {
     private String secretKey;
 
     @PostConstruct
-    protected void init() {
+    protected void init() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         secretKey = Base64.getEncoder().encodeToString(globalSetting.getSess().getSecret().getBytes());
 
-        identifier = new SessionRedisIdentifier(globalSetting.getSess());
+        SessProperties sessProperties = globalSetting.getSess();
+        Class engineClass = sessProperties.getStorageEngine().getEngineClass();
+
+        Constructor constructor = engineClass.getConstructor(new Class[] { SessProperties.class });
+        identifier = (SessionIdentifier) constructor.newInstance(sessProperties);
     }
 
     public String createToken(String userid) {

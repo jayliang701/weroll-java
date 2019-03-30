@@ -3,17 +3,20 @@ package com.magicfish.weroll.controller;
 import com.magicfish.weroll.annotation.Param;
 import com.magicfish.weroll.annotation.Router;
 import com.magicfish.weroll.annotation.RouterGroup;
+import com.magicfish.weroll.config.ViewTemplateConfiguration;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
 import com.magicfish.weroll.middleware.PagePermissionMiddleware;
 import com.magicfish.weroll.net.PageAction;
 import com.magicfish.weroll.utils.TypeConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -25,6 +28,14 @@ import java.util.concurrent.ExecutionException;
 
 @Controller
 public class RouterController extends AbstractController {
+
+    @Autowired
+    private ViewTemplateConfiguration viewTemplateConfiguration;
+
+    @ModelAttribute
+    public void testModelAttribute(Model model){
+        // model.addAttribute("setting", viewTemplateConfiguration);
+    }
 
     protected HashMap<String, RouterObj> routers;
 
@@ -71,6 +82,8 @@ public class RouterController extends AbstractController {
     }
 
     protected Object process(Model model, HttpServletRequest request, HttpServletResponse response) {
+        model.addAttribute("setting", viewTemplateConfiguration);
+
         Object path = request.getRequestURI();
         RouterObj routerObj = routers.getOrDefault(path, null);
         if (routerObj == null) {

@@ -1,1 +1,1 @@
-mvn deploy:deploy-file -Dmaven.test.skip=true -Dfile=./target/weroll-0.0.2-SNAPSHOT.jar -DgroupId=com.magicfish -DartifactId=weroll -Dversion=0.0.2-SNAPSHOT -Dpackaging=jar -DrepositoryId=snapshots -Durl=http://maven.magicfish.cn/nexus/content/repositories/snapshots/
+mvn deploy:deploy-file -Dmaven.test.skip=true -Dfile=./target/weroll-0.0.1-SNAPSHOT.jar -DgroupId=com.magicfish -DartifactId=weroll -Dversion=0.0.1-SNAPSHOT -Dpackaging=jar -DrepositoryId=magicfish-snapshots -Durl=http://maven.magicfish.cn/nexus/content/repositories/magicfish-snapshots
