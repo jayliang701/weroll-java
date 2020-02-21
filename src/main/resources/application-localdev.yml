@@ -1,0 +1,9 @@
+#log
+logging:
+    level:
+        root: INFO
+spring:
+    application:
+        name: service
+
+

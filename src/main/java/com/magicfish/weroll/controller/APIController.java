@@ -6,7 +6,8 @@ import com.magicfish.weroll.annotation.Param;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
 import com.magicfish.weroll.middleware.APIPermissionMiddleware;
-import com.magicfish.weroll.model.APIDef;
+import com.magicfish.weroll.model.APIGroup;
+import com.magicfish.weroll.model.APIObj;
 import com.magicfish.weroll.model.APIPostBody;
 import com.magicfish.weroll.net.APIAction;
 import com.magicfish.weroll.utils.TypeConverter;
@@ -25,7 +26,9 @@ import java.util.concurrent.ExecutionException;
 @Controller
 public class APIController extends AbstractController {
 
-    protected HashMap<String, APIDef> apis;
+    protected HashMap<String, APIGroup> apiGroups;
+
+    protected HashMap<String, APIObj> apiObjs;
 
     protected APIPermissionMiddleware permissionMiddleware;
 
@@ -42,50 +45,42 @@ public class APIController extends AbstractController {
     @PostMapping("/api")
     public Object api(@RequestBody APIPostBody body, HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ExecutionException, InterruptedException {
         APIAction request = new APIAction(servletRequest, servletResponse, body);
+        // logger.info("Thread Name ---> " + Thread.currentThread().getName());
         return process(request);
     }
 
     protected Object process(APIAction action) {
-        logger.debug("execute API: " + action.getMethod());
+        // logger.info("execute API: " + action.getMethod());
         Object result;
         try {
             APIPostBody postBody = action.getPostBody();
             HashMap<String, Object> postData = postBody.getData();
             String apiName = postBody.getMethod();
             APIObj api = this.getAPI(apiName);
-            if (api == null || api.apiDef == null) {
+            if (api == null) {
                 throw new ServiceException("no such method", ErrorCodes.NO_SUCH_METHOD);
             }
-            Object ins = api.apiDef.getInstance();
-            java.lang.reflect.Method method = api.getMethod(api.method);
 
-            Method methodDef = api.getMethodDef(api.method);
-            if (method == null || methodDef == null) {
-                throw new ServiceException("no such method", ErrorCodes.NO_SUCH_METHOD);
-            }
+            Method methodDef = api.getMethodDef();
 
             if (!this.checkPermission(action, methodDef)) {
                 throw new ServiceException("no permission", ErrorCodes.NO_PERMISSION);
             }
 
             Param[] paramDef = methodDef.params();
-            boolean needActionArg = true;
-            Object[] objs;
-            Class<?>[] typeClasses = method.getParameterTypes();
-            if (typeClasses.length > 0 && typeClasses[typeClasses.length - 1].equals(APIAction.class)) {
-                objs = new Object[paramDef.length + 1];
-            } else {
-                objs = new Object[paramDef.length];
-                needActionArg = false;
-            }
+            Object[] args = new Object[api.getParamsCount()];
 
             for (int i = 0; i < paramDef.length; i++) {
                 Param param = paramDef[i];
-                objs[i] = null;
+                args[i] = null;
                 Object val;
                 String name = param.name();
                 if (postData.containsKey(name)) {
                     val = postData.get(name);
+                    if (!TypeConverter.isMatchType(val, param.type())) {
+                        throw new ServiceException("param [" + name + "] should be [" + param.type() + "] type", ErrorCodes.REQUEST_PARAMS_INVALID);
+                    }
+                    // val = TypeConverter.transferValue(val, param.type());
                 } else {
                     if (param.required()) {
                         throw new ServiceException("param [" + name + "] is required", ErrorCodes.REQUEST_PARAMS_INVALID);
@@ -93,12 +88,12 @@ public class APIController extends AbstractController {
                     // set default value
                     val = TypeConverter.castValueAs(param.defaultValue(), param.type());
                 }
-                objs[i] = val;
+                args[i] = val;
             }
-            if (needActionArg) objs[objs.length - 1] = action;
+            if (api.isNeedActionArg()) args[args.length - 1] = action;
 
             try {
-                result = action.sayOK(method.invoke(ins, objs));
+                result = action.sayOK(api.exec(args));
             } catch (Exception e) {
                 if (ServiceException.class.isInstance(e)) {
                     throw (ServiceException) e;
@@ -122,66 +117,23 @@ public class APIController extends AbstractController {
     }
 
     public APIObj getAPI(String name) {
-        APIObj obj = null;
-        String[] sp = name.split("\\.", 2);
-        if (sp == null || sp.length < 2) {
-            return null;
-        }
-        String tmp = sp[0];
-        if (tmp != null && !tmp.isEmpty()) {
-            APIDef def = apis.containsKey(tmp) ? apis.get(tmp) : null;
-            if (def != null) {
-                obj = new APIObj();
-                obj.apiDef = def;
-                obj.api = sp[0];
-                obj.method = sp[1];
-            }
-        }
+        APIObj obj = apiObjs.get(name);
         return obj;
     }
 
     @Override
     protected void injectAnnotation() throws Exception {
-        apis = new HashMap<>();
+        apiGroups = new HashMap<>();
+        apiObjs = new HashMap<>();
         Map<String, Object> beans = applicationContext.getBeansWithAnnotation(API.class);
-        for (Map.Entry<String, Object> entry : beans.entrySet()) {
-            Object ins = entry.getValue();
-            Class cls = ins.getClass();
-            API apiAnnotation = (API) cls.getAnnotation(API.class);
-            HashMap<String, Method> methodDefMap = new HashMap<>();
-            HashMap<String, java.lang.reflect.Method> methodMap = new HashMap<>();
-            java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
-            if (methods != null && methods.length > 0) {
-                for (java.lang.reflect.Method method : methods) {
-                    Method annotation = (Method) method.getAnnotation(Method.class);
-                    if (annotation != null) {
-                        methodDefMap.put(annotation.name(), annotation);
-                        methodMap.put(annotation.name(), method);
-                        logger.info("register api: " + apiAnnotation.name() + "." + annotation.name());
-                    }
-                }
-            }
+        for (Map.Entry<String, Object> beanEntry : beans.entrySet()) {
+            APIGroup def = new APIGroup(beanEntry.getValue());
+            apiGroups.put(def.getName(), def);
 
-            APIDef def = new APIDef(apiAnnotation.name(), ins, methodDefMap, methodMap);
-            apis.put(def.getName(), def);
+            for (Map.Entry<String, APIObj> apiObjEntry : def.getAPIObjs().entrySet()) { 
+                apiObjs.put(apiObjEntry.getKey(), apiObjEntry.getValue());
+                logger.info("register api: " + apiObjEntry.getKey());
+            }
         }
     }
-}
-
-class APIObj {
-
-    public APIDef apiDef;
-
-    public String api;
-
-    public String method;
-
-    public Method getMethodDef(String name) {
-        return apiDef.getMethodDef(name);
-    }
-
-    public java.lang.reflect.Method getMethod(String name) {
-        return apiDef.getMethod(name);
-    }
-
 }

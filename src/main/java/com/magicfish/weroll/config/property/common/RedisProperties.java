@@ -1,4 +1,6 @@
-package com.magicfish.weroll.config.property;
+package com.magicfish.weroll.config.property.common;
+
+import com.magicfish.weroll.config.property.AbstractProperties;
 
 public class RedisProperties extends AbstractProperties {
     private String host = "localhost";
@@ -39,5 +41,15 @@ public class RedisProperties extends AbstractProperties {
 
     public void setPrefix(String prefix) {
         this.prefix = prefix;
+    }
+
+    private RedisPoolProperties pool = new RedisPoolProperties();
+
+    public RedisPoolProperties getPool() {
+        return pool;
+    }
+
+    public void setPool(RedisPoolProperties pool) {
+        this.pool = pool;
     }
 }

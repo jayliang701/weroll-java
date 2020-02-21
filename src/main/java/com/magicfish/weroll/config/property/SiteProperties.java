@@ -2,7 +2,7 @@ package com.magicfish.weroll.config.property;
 
 public class SiteProperties extends AbstractProperties {
 
-    private String domain = "http://localhost:";
+    private String domain = "";
 
     public String getDomain() {
         return domain;

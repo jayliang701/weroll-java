@@ -14,7 +14,7 @@ public class ViewTemplateConfiguration {
     }
 
     public String getResDomain() {
-        return globalSetting.getRes().getDomain();
+        return globalSetting.getRes().getCdn();
     }
 
     public String getSiteDomain() {

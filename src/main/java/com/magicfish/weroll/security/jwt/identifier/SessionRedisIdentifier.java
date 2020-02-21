@@ -1,20 +1,23 @@
 package com.magicfish.weroll.security.jwt.identifier;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import com.alibaba.fastjson.JSONObject;
-import com.magicfish.weroll.config.property.RedisProperties;
+import com.magicfish.weroll.config.property.common.RedisPoolProperties;
+import com.magicfish.weroll.config.property.common.RedisProperties;
 import com.magicfish.weroll.config.property.SessProperties;
 import com.magicfish.weroll.exception.IllegalSessionTokenException;
+
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class SessionRedisIdentifier extends AbstractSessionIdentifier {
 
@@ -28,8 +31,17 @@ public class SessionRedisIdentifier extends AbstractSessionIdentifier {
             RedisPassword password = RedisPassword.of(redisProperties.getPass());
             configuration.setPassword(password);
         }
-        JedisClientConfiguration jedisClientConfiguration = JedisClientConfiguration.builder().usePooling().build();
-        JedisConnectionFactory factory = new JedisConnectionFactory(configuration, jedisClientConfiguration);
+
+        RedisPoolProperties redisPoolProperties = redisProperties.getPool();
+        
+        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        poolConfig.setMaxTotal(redisPoolProperties.getMaxActive());
+        poolConfig.setMinIdle(redisPoolProperties.getMinIdle());
+        poolConfig.setMaxIdle(redisPoolProperties.getMaxIdle());
+        poolConfig.setMaxWaitMillis(redisPoolProperties.getMaxWait());
+
+        LettucePoolingClientConfiguration redisClientConfiguration = LettucePoolingClientConfiguration.builder().poolConfig(poolConfig).build();
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(configuration, redisClientConfiguration);
         factory.afterPropertiesSet();
 
         redisTemplate = new RedisTemplate<>();

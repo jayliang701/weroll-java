@@ -101,14 +101,15 @@ public class RouterController extends AbstractController {
         }
 
         try {
-            Class<?>[] typeClasses = routerObj.method.getParameterTypes();
-            Object[] objs = new Object[typeClasses.length];
-            if (typeClasses.length > 0 && typeClasses[typeClasses.length - 1].equals(PageAction.class)) {
+            Class<?>[] typeClasses = routerObj.typeClasses;
+            int typeClassesCount = typeClasses.length;
+            Object[] objs = new Object[typeClassesCount];
+            if (typeClassesCount > 0 && typeClasses[typeClassesCount - 1].equals(PageAction.class)) {
                 objs[objs.length - 1] = action;
-                if (typeClasses.length > 1 && typeClasses[typeClasses.length - 2].equals(Model.class)) {
+                if (typeClassesCount > 1 && typeClasses[typeClassesCount - 2].equals(Model.class)) {
                     objs[objs.length - 2] = model;
                 }
-            } else if (typeClasses.length > 0 && typeClasses[typeClasses.length - 1].equals(Model.class)) {
+            } else if (typeClassesCount > 0 && typeClasses[typeClassesCount - 1].equals(Model.class)) {
                 objs[objs.length - 1] = model;
             }
             Param[] paramDef = router.params();
@@ -163,6 +164,7 @@ public class RouterController extends AbstractController {
                         routerObj.instance = ins;
                         routerObj.router = routerAnnotation;
                         routerObj.method = method;
+                        routerObj.typeClasses = method.getParameterTypes();
                         routers.put(routerAnnotation.path(), routerObj);
                         logger.info("register router: " + routerAnnotation.path());
                     }
@@ -177,4 +179,5 @@ class RouterObj {
     public Router router;
     public Object instance;
     public Method method;
+    public Class<?>[] typeClasses;
 }

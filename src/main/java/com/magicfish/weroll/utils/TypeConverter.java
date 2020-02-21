@@ -1,12 +1,18 @@
 package com.magicfish.weroll.utils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
+
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
@@ -18,21 +24,37 @@ public class TypeConverter {
 
     static HashMap<String, Class> TYPES = new HashMap<>();
     static HashMap<String, java.lang.reflect.Method> CASTS = new HashMap<>();
+    static HashMap<String, java.lang.reflect.Method> TRANSFERS = new HashMap<>();
 
     public static void init() throws NoSuchMethodException {
         TYPES.put("string", String.class);
-        TYPES.put("int", int.class);
-        TYPES.put("long", long.class);
-        TYPES.put("float", float.class);
-        TYPES.put("double", double.class);
-        TYPES.put("boolean", boolean.class);
+        TYPES.put("int", Integer.class);
+        TYPES.put("long", Long.class);
+        TYPES.put("float", Float.class);
+        TYPES.put("double", Double.class);
+        TYPES.put("boolean", Boolean.class);
+        TYPES.put("object", LinkedHashMap.class);
+        TYPES.put("array", ArrayList.class);
 
         CASTS.put("java.lang.String-int", TypeConverter.class.getDeclaredMethod("cast_string_to_int", String.class));
         CASTS.put("java.lang.String-long", TypeConverter.class.getDeclaredMethod("cast_string_to_long", String.class));
         CASTS.put("java.lang.String-float", TypeConverter.class.getDeclaredMethod("cast_string_to_float", String.class));
         CASTS.put("java.lang.String-double", TypeConverter.class.getDeclaredMethod("cast_string_to_double", String.class));
         CASTS.put("java.lang.String-boolean", TypeConverter.class.getDeclaredMethod("cast_string_to_boolean", String.class));
+        CASTS.put("java.lang.String-object", TypeConverter.class.getDeclaredMethod("cast_string_to_object", String.class));
+        CASTS.put("java.lang.String-array", TypeConverter.class.getDeclaredMethod("cast_string_to_array", String.class));
+
+        // TRANSFERS.put("object", TypeConverter.class.getDeclaredMethod("transfer_object", HashMap.class));
+        // TRANSFERS.put("array", TypeConverter.class.getDeclaredMethod("cast_string_to_array", ArrayList.class));
     }
+
+    // private static JSONObject transfer_object(HashMap<String, Object> val) {
+    //     return new JSONObject(val);
+    // }
+
+    // private static ArrayList transfer_array(ArrayList<Object> val) {
+    //     return val;
+    // }
 
     private static int cast_string_to_int(String val) {
         return Integer.valueOf(val);
@@ -59,23 +81,87 @@ public class TypeConverter {
         return Boolean.valueOf(val);
     }
 
-    public static Object castValueAs(Object val, String typeName) throws ServiceException {
-        Class type = TYPES.getOrDefault(typeName, null);
-        if (type == null)
-            throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
-        String srcClassName = val.getClass().getName();
-        if (srcClassName.equals(type.getName())) return val;
+    private static JSONObject cast_string_to_object(String val) {
+        return JSON.parseObject(val);
+    }
 
-        String castMethodKey = srcClassName + "-" + type.getName();
+    private static JSONArray cast_string_to_array(String val) {
+        return JSON.parseArray(val);
+    }
+
+    public static Object castValueAs(Object val, String typeName) throws ServiceException {
+        CheckResult result = checkType(val, typeName);
+        if (result.isMatch()) return val;
+
+        String srcClassName = result.getClassName();
+
+        String castMethodKey = srcClassName + "-" + typeName;
         java.lang.reflect.Method method = CASTS.getOrDefault(castMethodKey, null);
         if (method != null) {
             try {
                 return method.invoke(null, val);
             } catch (Exception e) {
+                // if (e.getClass().equals(ServiceException.class)) {
+                //     throw new ServiceException(e.getMessage() + " [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+                // }
                 throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
             }
         }
 
-        return type.cast(val);
+        return result.getType().cast(val);
+    }
+
+    // public static Object transferValue(Object val, String typeName) throws ServiceException {
+    //     java.lang.reflect.Method method = TRANSFERS.getOrDefault(typeName, null);
+    //     if (method != null) {
+    //         try {
+    //             return method.invoke(null, val);
+    //         } catch (Exception e) {
+    //             throw new ServiceException("can't parse param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+    //         }
+    //     }
+    //     return val;
+    // }
+
+    public static boolean isMatchType(Object val, String typeName) throws ServiceException {
+        CheckResult result = checkType(val, typeName);
+        return result.isMatch();
+    }
+
+    private static CheckResult checkType(Object val, String typeName) throws ServiceException {
+        Class type = TYPES.getOrDefault(typeName, null);
+        if (type == null)
+            throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+        String srcClassName = val.getClass().getName();
+        if (srcClassName.equals(type.getName())) {
+            return new CheckResult(type, srcClassName, true);
+        }
+        return new CheckResult(type, srcClassName, false);
+    }
+}
+
+class CheckResult {
+    public CheckResult(Class type, String className, boolean result) {
+        this.type = type;
+        this.className = className;
+        this.result = result;
+    }
+
+    private Class type;
+
+    public Class getType() {
+        return type;
+    }
+
+    private String className;
+
+    public String getClassName() {
+        return className;
+    }
+
+    private boolean result = false;
+
+    public boolean isMatch() {
+        return result;
     }
 }

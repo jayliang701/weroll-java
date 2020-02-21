@@ -9,7 +9,7 @@ import org.springframework.core.annotation.Order;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Configuration("globalSetting")
 @ConfigurationProperties(prefix="setting")
-@PropertySource("classpath:application-${spring.profiles.active}.properties")
+@PropertySource("classpath:application-${spring.profiles.active}.yml")
 public class GlobalSetting extends BaseGlobalSetting {
 
     private static GlobalSetting instance;

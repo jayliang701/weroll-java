@@ -1,0 +1,82 @@
+#log
+logging:
+    level:
+        root: INFO
+#spring
+server:
+    port: 8080
+spring:
+    application:
+        name: service
+#排除自动配置
+    autoconfigure:
+        exclude: org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration,org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration, org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+    http:
+        converters:
+            preferred-json-mapper: fastjson
+        encoding:
+            force: true
+    servlet:
+        multipart:
+            max-file-size: 10MB
+            max-request-size: 100MB
+#springcloud config
+eureka:
+    client:
+        enabled: false
+        fetch-registry: false
+        register-with-eureka: false
+#eureka.client.serviceUrl.defaultZone=http://192.168.2.42:7000/eureka/,http://localhost:7000/eureka/
+#eureka.instance.prefer-ip-address=true
+##### weroll 配置 #####
+# api调用配置
+setting:
+    env: localdev
+    api:
+        connection-timeout: 15000
+# 是否开启跨越控制
+        cors-allow-originals: '*'
+        enable-cors: true
+        read-timeout: 15000
+    router:
+        page-not-found: /404
+# 密码加密配置
+# 加密方式, 可选bcrypt或md5
+    auth:
+        denied-redirect: /403
+        enabled: false
+        entry-point: /login
+        password-encode-method: bcrypt
+        password-encode-strength: 10
+        password-encode-salt: $2a$10$Z/xrAJb2z5DUlDz3sPY7UO
+        whitelist: /**
+# session
+# 存储Sess的方式, redis, 可选 redis, mongodb
+    sess:
+        mongodb:
+            auto-build-index: true
+            uri: mongodb://localhost:27017/weroll_sess
+        one-point-enter: false
+        redis:
+            host: localhost
+            pass: ''
+            pool:
+                max-active: 20
+                max-idle: 10
+                max-wait: -1
+                min-idle: 0
+            port: 6379
+            prefix: weroll_java_sess_
+        secret: sdk.fjm4u343+)djn%
+        storage-engine: redis
+        token-expire-time: 2592000
+# static and resources
+    res:
+        cdn: /res
+        handlers: /webjars/**,/res/**
+        locations: classpath:/META-INF/resources/webjars/,classpath:/res/
+# site
+    site:
+        domain: http://localhost:${server.port}
+        title: Weroll For Java
+

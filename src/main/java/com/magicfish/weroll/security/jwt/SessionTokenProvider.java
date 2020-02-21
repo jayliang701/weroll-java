@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -97,7 +99,13 @@ public class SessionTokenProvider {
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7, bearerToken.length());
         }
-        return null;
+
+        Cookie cookie = WebUtils.getCookie(req, "authorization");
+        if (cookie != null) {
+            bearerToken = cookie.getValue();
+        }
+
+        return bearerToken;
     }
 
     public boolean validateToken(String token) throws IllegalSessionTokenException {

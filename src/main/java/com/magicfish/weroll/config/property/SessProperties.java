@@ -2,6 +2,8 @@ package com.magicfish.weroll.config.property;
 
 import com.magicfish.weroll.config.property.enums.SessStorageEngineType;
 
+import com.magicfish.weroll.config.property.common.RedisProperties;
+
 public class SessProperties extends AbstractProperties {
 
     private boolean onePointEnter = false;

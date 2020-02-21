@@ -45,7 +45,7 @@ public class BaseGlobalSetting {
         this.auth = auth;
     }
 
-    private ThreadProperties thread;
+    private ThreadProperties thread = new ThreadProperties();
 
     public ThreadProperties getThread() {
         return thread;
