@@ -1,0 +1,1 @@
+{ "method":"system.ping", "data":{ "name":"lgks701", "gender":1 } }
