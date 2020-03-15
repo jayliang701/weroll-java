@@ -1,18 +1,12 @@
 package com.magicfish.weroll.config;
 
+import com.magicfish.weroll.WerollApplication;
 import com.magicfish.weroll.config.property.*;
 
 public class BaseGlobalSetting {
 
-    private String env;
-
     public String getEnv() {
-        return env;
-    }
-
-    public void setEnv(String env) {
-        this.env = env;
-        System.out.println("env: " + env);
+        return System.getProperty(WerollApplication.ENV_ARG_NAME);
     }
 
     private APIProperties api;

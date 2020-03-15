@@ -10,4 +10,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith (SpringRunner.class)
 @SpringBootTest(classes = DemoApplication.class, args = "--spring.profiles.active=unittest")
 public class DemoApplicationTest {
+    @Test
+    public void mock() {
+
+    }
 }

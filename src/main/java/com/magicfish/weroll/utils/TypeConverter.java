@@ -1,18 +1,16 @@
 package com.magicfish.weroll.utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.magicfish.weroll.consts.ErrorCodes;
-import com.magicfish.weroll.exception.ServiceException;
-
+import com.magicfish.weroll.exception.TypeException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
@@ -89,7 +87,7 @@ public class TypeConverter {
         return JSON.parseArray(val);
     }
 
-    public static Object castValueAs(Object val, String typeName) throws ServiceException {
+    public static Object castValueAs(Object val, String typeName) throws TypeException {
         CheckResult result = checkType(val, typeName);
         if (result.isMatch()) return val;
 
@@ -101,10 +99,7 @@ public class TypeConverter {
             try {
                 return method.invoke(null, val);
             } catch (Exception e) {
-                // if (e.getClass().equals(ServiceException.class)) {
-                //     throw new ServiceException(e.getMessage() + " [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
-                // }
-                throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+                throw new TypeException(typeName);
             }
         }
 
@@ -123,15 +118,15 @@ public class TypeConverter {
     //     return val;
     // }
 
-    public static boolean isMatchType(Object val, String typeName) throws ServiceException {
+    public static boolean isMatchType(Object val, String typeName) throws TypeException {
         CheckResult result = checkType(val, typeName);
         return result.isMatch();
     }
 
-    private static CheckResult checkType(Object val, String typeName) throws ServiceException {
+    private static CheckResult checkType(Object val, String typeName) throws TypeException {
         Class type = TYPES.getOrDefault(typeName, null);
         if (type == null)
-            throw new ServiceException("unsupported param type [" + typeName + "]", ErrorCodes.REQUEST_PARAMS_INVALID);
+            throw new TypeException(typeName);
         String srcClassName = val.getClass().getName();
         if (srcClassName.equals(type.getName())) {
             return new CheckResult(type, srcClassName, true);

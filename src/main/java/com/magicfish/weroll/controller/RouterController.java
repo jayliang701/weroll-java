@@ -55,7 +55,7 @@ public class RouterController extends AbstractController {
         return renderPage(model, request, response);
     }
 
-    @GetMapping("/{.+}")
+    @GetMapping("/**")
     public Object renderPage(Model model, HttpServletRequest request, HttpServletResponse response) throws ExecutionException, InterruptedException, IOException {
         Object path = process(model, request, response);
         if (path == null) {
@@ -113,6 +113,7 @@ public class RouterController extends AbstractController {
                 objs[objs.length - 1] = model;
             }
             Param[] paramDef = router.params();
+
             for (int i = 0; i < paramDef.length; i++) {
                 Param param = paramDef[i];
                 objs[i] = null;

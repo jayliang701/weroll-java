@@ -5,17 +5,16 @@ import com.magicfish.weroll.annotation.Method;
 import com.magicfish.weroll.annotation.Param;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
+import com.magicfish.weroll.exception.ServiceIllegalParamException;
 import com.magicfish.weroll.middleware.APIPermissionMiddleware;
 import com.magicfish.weroll.model.APIGroup;
 import com.magicfish.weroll.model.APIObj;
 import com.magicfish.weroll.model.APIPostBody;
 import com.magicfish.weroll.net.APIAction;
-import com.magicfish.weroll.utils.TypeConverter;
+import com.magicfish.weroll.utils.ParamProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -49,12 +48,19 @@ public class APIController extends AbstractController {
         return process(request);
     }
 
+    @RequestMapping(value = "/*", method = RequestMethod.GET)
+    public Object rest(@RequestBody Object body, HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ExecutionException, InterruptedException {
+        // APIAction request = new APIAction(servletRequest, servletResponse, body);
+        logger.info(body.toString());
+        return null;
+    }
+
     protected Object process(APIAction action) {
         // logger.info("execute API: " + action.getMethod());
         Object result;
         try {
             APIPostBody postBody = action.getPostBody();
-            HashMap<String, Object> postData = postBody.getData();
+            Map<String, Object> postData = postBody.getData();
             String apiName = postBody.getMethod();
             APIObj api = this.getAPI(apiName);
             if (api == null) {
@@ -68,40 +74,18 @@ public class APIController extends AbstractController {
             }
 
             Param[] paramDef = methodDef.params();
-            Object[] args = new Object[api.getParamsCount()];
-
-            for (int i = 0; i < paramDef.length; i++) {
-                Param param = paramDef[i];
-                args[i] = null;
-                Object val;
-                String name = param.name();
-                if (postData.containsKey(name)) {
-                    val = postData.get(name);
-                    if (!TypeConverter.isMatchType(val, param.type())) {
-                        throw new ServiceException("param [" + name + "] should be [" + param.type() + "] type", ErrorCodes.REQUEST_PARAMS_INVALID);
-                    }
-                    // val = TypeConverter.transferValue(val, param.type());
-                } else {
-                    if (param.required()) {
-                        throw new ServiceException("param [" + name + "] is required", ErrorCodes.REQUEST_PARAMS_INVALID);
-                    }
-                    // set default value
-                    val = TypeConverter.castValueAs(param.defaultValue(), param.type());
-                }
-                args[i] = val;
-            }
-            if (api.isNeedActionArg()) args[args.length - 1] = action;
 
             try {
+                Object[] args = ParamProcessor.checkAndReturnArray(paramDef, postData, api.getParamsCount());
+                if (api.isNeedActionArg()) args[args.length - 1] = action;
+
                 result = action.sayOK(api.exec(args));
+            } catch (ServiceException e) {
+                throw e;
+            } catch (ServiceIllegalParamException e) {
+                throw new ServiceException(e.getMessage(), ErrorCodes.REQUEST_PARAMS_INVALID);
             } catch (Exception e) {
-                if (ServiceException.class.isInstance(e)) {
-                    throw (ServiceException) e;
-                } else if (ServiceException.class.isInstance(e.getCause())) {
-                    throw (ServiceException) (e.getCause());
-                } else {
-                    throw ServiceException.wrapper(e);
-                }
+                throw ServiceException.wrapper(e);
             }
         } catch (IllegalArgumentException e) {
             result = action.sayError(ErrorCodes.REQUEST_PARAMS_INVALID, "invalid request params");

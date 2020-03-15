@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.HashMap;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.PARAMETER})
@@ -15,4 +16,6 @@ public @interface Param {
     boolean required() default true;
 
     String defaultValue() default "";
+
+    Class classRef() default Object.class;
 }
