@@ -10,6 +10,20 @@ import java.util.Map;
 
 public class HttpAction {
 
+    public static HttpAction initialize(HttpAction action, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        if (action == null) {
+            action = new HttpAction();
+        }
+        action.servletRequest = servletRequest;
+        action.servletResponse = servletResponse;
+        action.init();
+        return action;
+    }
+
+    public static HttpAction create(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return new HttpAction(servletRequest, servletResponse);
+    }
+
     protected HttpServletRequest servletRequest;
 
     public HttpServletRequest getServletRequest() {
@@ -44,9 +58,17 @@ public class HttpAction {
         return userPayload != null;
     }
 
+    public HttpAction() {
+
+    }
+
     public HttpAction(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         this.servletRequest = servletRequest;
         this.servletResponse = servletResponse;
+        init();
+    }
+
+    private void init() {
         this.time = System.currentTimeMillis();
         this.authentication = SecurityContextHolder.getContext().getAuthentication();
         if (this.authentication != null) {

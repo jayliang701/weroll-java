@@ -6,6 +6,8 @@ logging:
 server:
     port: 8080
 spring:
+    main:
+        lazy-initialization: false
     application:
         name: service
 #排除自动配置
@@ -56,6 +58,7 @@ setting:
         mongodb:
             auto-build-index: true
             uri: mongodb://localhost:27017/weroll_sess
+            dbname: weroll_sess
         one-point-enter: false
         redis:
             host: localhost

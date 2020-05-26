@@ -41,4 +41,24 @@ public class APIProperties extends AbstractProperties {
     public void setCorsAllowOriginals(String corsAllowOriginals) {
         this.corsAllowOriginals = corsAllowOriginals;
     }
+
+    private String processor = "com.magicfish.weroll.controller.APIProcessor";
+
+    public String getProcessor() {
+        return processor;
+    }
+
+    public void setProcessor(String processor) {
+        this.processor = processor;
+    }
+
+    private String[] interceptors = new String[]{};
+
+    public String[] getInterceptors() {
+        return interceptors;
+    }
+
+    public void setInterceptors(String[] interceptors) {
+        this.interceptors = interceptors;
+    }
 }

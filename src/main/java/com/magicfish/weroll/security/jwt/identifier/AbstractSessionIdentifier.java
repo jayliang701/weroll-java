@@ -19,7 +19,7 @@ public class AbstractSessionIdentifier implements SessionIdentifier {
     protected String getIdentify(String secretKey, String token) {
         Claims body = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
 
-        String id = body.get("userid", String.class);
+        String id = body.get("id", String.class);
         Long time = body.get("time", Long.class);
 
         return generateIdentify(id, time);

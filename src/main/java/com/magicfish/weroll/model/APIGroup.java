@@ -14,16 +14,22 @@ public class APIGroup {
 
         Class cls = apiInstance.getClass();
         API apiAnnotation = (API) cls.getAnnotation(API.class);
+        this.name = apiAnnotation.name();
+
         HashMap<String, Method> methodDefMap = new HashMap<>();
         HashMap<String, java.lang.reflect.Method> methodMap = new HashMap<>();
         java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
         if (methods != null && methods.length > 0) {
             for (java.lang.reflect.Method method : methods) {
-                Method annotation = (Method) method.getAnnotation(Method.class);
+                Method annotation = method.getAnnotation(Method.class);
                 if (annotation != null) {
-                    methodDefMap.put(annotation.name(), annotation);
-                    methodMap.put(annotation.name(), method);
-                    String fullNameOfMethod = apiAnnotation.name() + "." + annotation.name();
+                    String name = annotation.name();
+                    if (name.isEmpty()) {
+                        name = method.getName();
+                    }
+                    methodDefMap.put(name, annotation);
+                    methodMap.put(name, method);
+                    String fullNameOfMethod = apiAnnotation.name() + "." + name;
 
                     APIObj obj = new APIObj(this, method, annotation);
 

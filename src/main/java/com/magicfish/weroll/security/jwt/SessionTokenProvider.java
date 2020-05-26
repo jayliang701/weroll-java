@@ -69,7 +69,7 @@ public class SessionTokenProvider {
             claims.put(pair.getKey(), pair.getValue());
             more.put(pair.getKey(), pair.getValue());
         }
-        claims.put("userid", userid);
+        claims.put("id", userid);
         claims.put("time", time);
         more.put("userid", userid);
         more.put("time", time);

@@ -11,8 +11,6 @@ public @interface Router {
 
     String view() default "";
 
-    Param[] params() default {};
-
     boolean needLogin() default false;
 
 }

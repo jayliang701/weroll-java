@@ -1,5 +1,6 @@
 package com.magicfish.weroll;
 
+import com.magicfish.weroll.annotation.AnnotationRegister;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -20,7 +21,11 @@ public class WerollApplication {
         return args;
     }
 
-    public static ConfigurableApplicationContext run(Class<?> primarySource, String[] args) {
+    private static void preInitialize(String[] args) throws Exception {
+        AnnotationRegister.initialize();
+    }
+
+    public static ConfigurableApplicationContext run(Class<?> primarySource, String[] args) throws Exception {
         args = processArguments(args);
 
         String env = System.getProperty(ENV_ARG_NAME);
@@ -29,6 +34,9 @@ public class WerollApplication {
             System.setProperty(ENV_ARG_NAME, env);
         }
 
-        return SpringApplication.run(primarySource, args);
+        preInitialize(args);
+
+        ConfigurableApplicationContext applicationContext = SpringApplication.run(primarySource, args);
+        return applicationContext;
     }
 }

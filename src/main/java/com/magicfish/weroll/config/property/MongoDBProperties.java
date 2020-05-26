@@ -22,6 +22,16 @@ public class MongoDBProperties {
         this.table = table;
     }
 
+    private String dbname = "weroll_sess";
+
+    public String getDbname() {
+        return dbname;
+    }
+
+    public void setDbname(String dbname) {
+        this.dbname = dbname;
+    }
+
     private boolean autoBuildIndex = true;
 
     public boolean isAutoBuildIndex() {

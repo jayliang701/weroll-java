@@ -12,5 +12,6 @@ import org.springframework.context.annotation.Import;
 @Target(TYPE)
 @Import(WerollAnnotation.class)
 public @interface Weroll {
-
+    String[] apiScan() default "";
+    String apiController() default "";
 }

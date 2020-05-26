@@ -18,7 +18,7 @@ public class GlobalSetting extends BaseGlobalSetting {
         return instance;
     }
 
-    public GlobalSetting() {
+    public GlobalSetting() throws Exception {
         instance = this;
     }
 }

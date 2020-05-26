@@ -1,5 +1,6 @@
 package com.magicfish.weroll.config;
 
+import com.magicfish.weroll.net.IHttpInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -41,6 +42,16 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     public void addInterceptors(InterceptorRegistry registry) {
         if (globalSetting.getApi().getEnableCors()) {
             registry.addInterceptor(new CORSInterceptor(globalSetting)).addPathPatterns("/**");
+        }
+        String[] interceptors = globalSetting.getApi().getInterceptors();
+        for (int i = 0; i < interceptors.length; i++) {
+            try {
+                Class<?> cls = Class.forName(interceptors[i]);
+                IHttpInterceptor interceptor = (IHttpInterceptor) cls.newInstance();
+                interceptor.register(registry);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

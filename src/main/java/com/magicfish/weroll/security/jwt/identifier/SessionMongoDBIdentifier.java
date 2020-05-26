@@ -4,10 +4,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.config.property.MongoDBProperties;
 import com.magicfish.weroll.config.property.SessProperties;
 import com.magicfish.weroll.exception.IllegalSessionTokenException;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -26,7 +26,10 @@ public class SessionMongoDBIdentifier extends AbstractSessionIdentifier {
 
         MongoDBProperties mongodbProperties = properties.getMongodb();
 
-        mongoTemplate = new MongoTemplate(new SimpleMongoDbFactory(new MongoClientURI(mongodbProperties.getUri())));
+        MongoClient mongoClient = MongoClients.create(mongodbProperties.getUri());
+
+        mongoTemplate = new MongoTemplate(mongoClient, mongodbProperties.getDbname());
+//        mongoTemplate = new MongoTemplate(new SimpleMongoDbFactory(new MongoClientURI(mongodbProperties.getUri())));
 
         if (mongodbProperties.isAutoBuildIndex()) {
             buildDBCollectionIndex();

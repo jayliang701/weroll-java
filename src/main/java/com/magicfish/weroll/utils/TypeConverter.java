@@ -4,11 +4,14 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.magicfish.weroll.exception.TypeException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
@@ -104,6 +107,58 @@ public class TypeConverter {
         }
 
         return result.getType().cast(val);
+    }
+
+    public static Object castValueAs(String val, Class<?> type) throws TypeException {
+        return castValueAs(val, type, BeanUtils.isSimpleValueType(type), false);
+    }
+
+    public static Object castValueAs(String val, Class<?> type, boolean isStrict) throws TypeException {
+        return castValueAs(val, type, BeanUtils.isSimpleValueType(type), isStrict);
+    }
+
+    public static Object castValueAs(String val, Class<?> type, boolean isSimpleType, boolean isStrict) throws TypeException {
+        Object obj = null;
+
+        if (isSimpleType) {
+            if (type.isPrimitive()) {
+                try {
+                    obj = castValueAs(val, type.getName());
+                } catch (Exception e) {
+                    throw new TypeException(type.getName());
+                }
+            } else {
+                try {
+                    obj = type.cast(val);
+                } catch (Exception e1) {
+                    try {
+                        Method valueOf = type.getMethod("valueOf", String.class);
+                        obj = valueOf.invoke(null, new Object[] { val });
+                    } catch (Exception e2) {
+                        throw new TypeException(type.getName());
+                    }
+                }
+            }
+        } else {
+            try {
+                obj = JSONObject.parseObject(val, type);
+            } catch (Exception e1) {
+                try {
+                    obj = JSONArray.parseArray(val, type);
+                } catch (Exception e2) {
+                    throw new TypeException(type.getName());
+                }
+            }
+            if (obj != null && isStrict && !type.isInstance(obj)) {
+                throw new TypeException(type.getName());
+            }
+        }
+
+        if (val != null && obj == null) {
+            throw new TypeException(type.getName());
+        }
+
+        return obj;
     }
 
     // public static Object transferValue(Object val, String typeName) throws ServiceException {

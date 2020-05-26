@@ -2,28 +2,22 @@ package com.magicfish.weroll.controller;
 
 import com.magicfish.weroll.annotation.API;
 import com.magicfish.weroll.annotation.Method;
-import com.magicfish.weroll.annotation.Param;
 import com.magicfish.weroll.consts.ErrorCodes;
 import com.magicfish.weroll.exception.ServiceException;
 import com.magicfish.weroll.exception.ServiceIllegalParamException;
 import com.magicfish.weroll.middleware.APIPermissionMiddleware;
 import com.magicfish.weroll.model.APIGroup;
 import com.magicfish.weroll.model.APIObj;
+import com.magicfish.weroll.model.APIParamObj;
 import com.magicfish.weroll.model.APIPostBody;
 import com.magicfish.weroll.net.APIAction;
 import com.magicfish.weroll.utils.ParamProcessor;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
-@Controller
-public class APIController extends AbstractController {
+public class APIProcessor extends AbstractHttpProcessor {
 
     protected HashMap<String, APIGroup> apiGroups;
 
@@ -31,7 +25,7 @@ public class APIController extends AbstractController {
 
     protected APIPermissionMiddleware permissionMiddleware;
 
-    public APIController(ApplicationContext applicationContext) throws Exception {
+    public APIProcessor(ApplicationContext applicationContext) throws Exception {
         super(applicationContext);
     }
 
@@ -40,22 +34,7 @@ public class APIController extends AbstractController {
         permissionMiddleware = new APIPermissionMiddleware();
     }
 
-    @ResponseBody
-    @PostMapping("/api")
-    public Object api(@RequestBody APIPostBody body, HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ExecutionException, InterruptedException {
-        APIAction request = new APIAction(servletRequest, servletResponse, body);
-        // logger.info("Thread Name ---> " + Thread.currentThread().getName());
-        return process(request);
-    }
-
-    @RequestMapping(value = "/*", method = RequestMethod.GET)
-    public Object rest(@RequestBody Object body, HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ExecutionException, InterruptedException {
-        // APIAction request = new APIAction(servletRequest, servletResponse, body);
-        logger.info(body.toString());
-        return null;
-    }
-
-    protected Object process(APIAction action) {
+    public Object process(APIAction action) {
         // logger.info("execute API: " + action.getMethod());
         Object result;
         try {
@@ -73,10 +52,11 @@ public class APIController extends AbstractController {
                 throw new ServiceException("no permission", ErrorCodes.NO_PERMISSION);
             }
 
-            Param[] paramDef = methodDef.params();
+            APIParamObj[] paramsDef = api.getParamsDef();
 
             try {
-                Object[] args = ParamProcessor.checkAndReturnArray(paramDef, postData, api.getParamsCount());
+
+                Object[] args = ParamProcessor.checkAndReturnArray(paramsDef, postData, api.getParamsCount());
                 if (api.isNeedActionArg()) args[args.length - 1] = action;
 
                 result = action.sayOK(api.exec(args));
